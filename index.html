@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpaceShooter</title>
+</head>
+<body>
+    <script>
+        setBackdropURL('./images/outerspace.jpg')
+
+let deltaX = 1;
+var BossHP = 200.0;
+var PlayerHP = 20;
+var laserClones = [];
+let gameIsOver = false;
+
+var Player = new Image({
+  url: "./docs/images/boss-ship.png",
+  width: 100, 
+  height: 100,
+  y: -200
+})
+
+var bossShip = new Image({
+  url: "./docs/images/boss-boss.png",
+  width: 300, 
+  height: 300,
+  x:0, y: 180
+})
+
+var BossHealth  = new Text({
+  text: () => "Boss: " + BossHP, 
+  size: 60, 
+  color: "White", 
+  fontFamily: "arial", 
+  textAlign: "left",
+  x: -715, y: 325
+})
+
+var playerHealth  = new Text({
+  text: () => "HP: " + PlayerHP, 
+  size: 60, 
+  color: "White", 
+  fontFamily: "arial", 
+  textAlign: "left",
+  x: -715, y: -325
+})
+
+function bossDeathAnimation() {
+  repeat(25, () => {
+    bossShip.width -= 10;
+    bossShip.height -= 0;
+  })
+  after(1, 'second', () => {
+    bossShip.delete();
+  })
+}
+
+function bossMovement() {
+  if (bossShip.x >= maxX || bossShip.x <= minX) {
+    deltaX *= -1;
+  } 
+
+  bossShip.x += deltaX;
+}
+
+function itemDrop() {
+  // An object. To access we do e.g. items["shields"] or items["hearts"]
+  const items = { 
+    shields: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/e6183ec1-5838-4e3e-a488-acbf4e2bcf22/d67n3kc-4c4f2c11-9841-4acb-a325-714b068ae40a.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcL2U2MTgzZWMxLTU4MzgtNGUzZS1hNDg4LWFjYmY0ZTJiY2YyMlwvZDY3bjNrYy00YzRmMmMxMS05ODQxLTRhY2ItYTMyNS03MTRiMDY4YWU0MGEucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.i1nm4bhQf94Uwv3WRuKO239sKmttZ7m2476zdXU9_ss", 
+    hearts: "https://opengameart.org/sites/default/files/heart%20pixel%20art%20254x254.png" 
+  }
+
+  every(() => random(15, 25), "seconds", () => {
+    let choice = Math.floor(Math.random() * 2) + 1;
+    let item = new Image({
+      url: items[choice === 1 ? "shields" : "hearts"],
+      width: 50, 
+      height: 50,
+      x: randomX(), y: maxY
+    })
+    
+    repeat(800, () => {
+      item.y -= 1;
+      shieldPickup(item);
+      if (item.y < minY) {
+        item.delete();
+      }
+    })
+  })
+}
+
+function shieldPickup(shield) {
+  if (Player.touching(shield)) {
+    PlayerHP += 5; 
+    shield.delete()
+  }
+}
+
+function heartPickup(heart) {
+  if (Player.touching(heart)) {
+    PlayerHP += 25; 
+    heart.delete()
+  }
+}
+
+onKeyDown(() => {
+  if (keysDown.includes('SPACE')) {
+    if (!gameIsOver) {
+      var laser = new Image( {
+        url: "./docs/images/boss-laser.png",
+        width: 25, 
+        height: 75,
+        x: Player.x, y: Player.y
+      });
+      
+      repeatUntil(() => laser.y >= maxY, () => {
+        laser.y += 10;
+        
+        if (laser.distanceTo(bossShip) < 60) {
+          laser.delete();
+          BossHP -= 0.1;
+        }
+        if (laser.y >= 325) {
+          laser.delete();
+        }
+      })
+    }
+  }
+})
+
+
+itemDrop();
+
+function gameOver() { 
+  gameIsOver = true;
+  let gameOverLabel  = new Text({
+    text: () => "GAME OVER",
+    color: "red", 
+    fontFamily: "arial", 
+    textAlign: "center",
+    size: 100,
+    x: 0, y: 0
+  })
+  freeze();
+}
+
+
+forever(() => {
+
+  if (Player.touching(bossShip)) {
+    Player.delete();
+    bossShip.delete();
+    gameOver();
+  }
+
+  bossMovement();
+
+  if(keysDown.includes('UP')|| keysDown.includes('w')) {
+    Player.y += 1;
+    if (Player.y > -60) {
+      Player.y = -60;
+    }
+  }
+  
+  if(keysDown.includes('DOWN')|| keysDown.includes('s')) {
+    Player.y -= 1;
+    if (Player.y < (minY + Player.height / 2)) {
+      Player.y = minY + Player.height / 2;
+    }
+  }
+  
+  if(keysDown.includes('LEFT')|| keysDown.includes('a')) {
+    Player.x -= 10;
+    if (Player.x < minX) {
+      Player.x = maxX;
+    }
+  }
+  
+  if(keysDown.includes('RIGHT')|| keysDown.includes('d')) {
+    Player.x += 10;
+    if (Player.x > maxX) {
+      Player.x = minX;
+    }
+  } 
+  
+  // Update Values and Labels
+  if (BossHP <= 0) {
+      BossHP = 0;
+      bossDeathAnimation();
+  }
+  BossHealth.text = parseFloat(BossHP).toFixed(1);
+})
+
+
+
+
+
+    </script>
+</body>
+</html>
